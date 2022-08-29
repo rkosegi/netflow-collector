@@ -1,0 +1,71 @@
+#	Copyright 2022 Richard Kosegi
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+netflow_endpoint: 0.0.0.0:30000
+telemetry_endpoint: 0.0.0.0:30001
+flush_interval: 120
+pipeline:
+  filter:
+    - local-to-local: true
+    - match: source_ip
+      is: 0.0.0.0
+    - match: source_ip
+      is: 255.255.255.255
+    - match: destination_ip
+      is: 0.0.0.0
+    - match: destination_ip
+      is: 255.255.255.255
+  enrich:
+    - interface_mapper
+    - maxmind_country
+    - maxmind_asn
+    - protocol_name
+  metrics:
+    prefix: netflow
+    items:
+      - name: traffic_detail
+        description: Traffic detail
+        labels:
+          - name: sampler
+            value: sampler
+            converter: ipv4
+          - name: protocol
+            value: proto_name
+            converter: str
+          - name: source_country
+            value: source_country
+            converter: str
+          - name: destination_country
+            value: destination_country
+            converter: str
+          - name: input_interface
+            value: input_interface
+            converter: uint32
+          - name: output_interface
+            value: output_interface
+            converter: uint32
+          - name: source_asn_org
+            value: source_asn_org
+            converter: str
+          - name: destination_asn_org
+            value: destination_asn_org
+            converter: str
+extensions:
+  maxmind_country:
+    mmdb_dir: /usr/share/GeoIP/
+  maxmind_asn:
+    mmdb_dir: /usr/share/GeoIP/
+  interface_mapper:
+    "0": wan0
+    "4": lan1
