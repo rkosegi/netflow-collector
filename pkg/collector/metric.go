@@ -78,6 +78,11 @@ func (lp *labelProcessor) init(label metricLabel) {
 			return strconv.FormatUint(uint64(v.(uint32)), 10)
 		}
 
+	case "uint64":
+		lp.converterFn = func(v interface{}) string {
+			return strconv.FormatUint(v.(uint64), 10)
+		}
+
 	case "static":
 		lp.applyFn = func(flow *public.Flow) string {
 			return label.Value

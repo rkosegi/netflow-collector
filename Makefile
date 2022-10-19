@@ -13,13 +13,13 @@
 # limitations under the License.
 
 ifndef CR
-override CR = https://ghcr.io/rkosegi
+override CR = ghcr.io/rkosegi
 endif
 
 clean:
 	rm -frv build
 
 build:
-	docker build -t $(CR)/netflow-collector:1.0.0 .
+	docker build -t $(CR)/netflow-collector:1.0.1 .
 
 .PHONY: clean build
