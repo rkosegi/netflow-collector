@@ -14,7 +14,7 @@
 
 module github.com/rkosegi/ipfix-collector
 
-go 1.18
+go 1.19
 
 require (
 	github.com/cloudflare/goflow/v3 v3.4.4

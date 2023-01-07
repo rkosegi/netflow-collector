@@ -6,17 +6,15 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
-permissions:
-  contents: read
+
 jobs:
-  lint:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.18
+      - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
 
       - name: Check out code
         uses: actions/checkout@v3
@@ -26,22 +24,8 @@ jobs:
       - name: Run linter
         uses: golangci/golangci-lint-action@v3
         with:
-          version: latest
+          version: v1.50.0
           args: --timeout=3m
-          only-new-issues: true
-
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Go 1.18
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.18
-
-      - name: Check out code
-        uses: actions/checkout@v3
-        with:
-          ref: ${{github.event.pull_request.head.sha}}
 
       - name: Download go dependencies
         run: go mod download
