@@ -13,7 +13,7 @@ In order for your setup to work, you will either need [nfdump](https://github.co
 or dedicated hardware such as [Mikrotik RB941](https://mikrotik.com/product/RB941-2nD)
 Flows are then fed into collector that aggregates them as metrics.
 Geolocation info is gathered from Maxmind GeoIP Lite database.
-Necessary files can be obtained on RHEL OS (or similar) with `sudo dnf install geolite2-country geolite2-asn` 
+Necessary files can be obtained on RHEL OS (or similar) with `sudo dnf install geolite2-country geolite2-asn`
 
 
 Example configuration for routerboard
@@ -50,6 +50,28 @@ Example metric
 ```
 
 Full example can be found [here](docs/config.yaml)
+
+## Supported enrichers
+
+
+- `maxmind_country`
+
+  MaxMind GeoLite country data are used to add source and destination country (if applicable)
+  - used attributes: `source_ip`, `destination_ip`
+  - added attributes: `source_country`, `destination_country`
+  - configuration options:
+    - `mmdb_dir` - path to directory which holds [MaxMind GeoIP DB files](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data)
+
+- `maxmind_asn`
+-
+  MaxMind GeoLite country data are used to add source and destination autonomous system (if applicable)
+  - used attributes: `source_ip`, `destination_ip`
+  - added attributes: `source_asn_org`, `destination_asn_org`
+  - configuration options:
+    - `mmdb_dir` - path to directory which holds [MaxMind GeoIP DB files](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data)
+
+- `interface_mapper`
+- `protocol_name`
 
 ## Run using podman/docker
 
