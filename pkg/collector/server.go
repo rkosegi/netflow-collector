@@ -23,9 +23,9 @@ import (
 	"github.com/rkosegi/ipfix-collector/pkg/public"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -94,7 +94,7 @@ func (c *col) Run() error {
 func (c *col) start() error {
 	c.log = log.New()
 	c.log.Printf("Loading config from %s", c.cfgFile)
-	data, err := ioutil.ReadFile(c.cfgFile)
+	data, err := os.ReadFile(c.cfgFile)
 	if err != nil {
 		return err
 	}
