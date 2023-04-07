@@ -22,10 +22,10 @@ import (
 )
 
 func TestMetrics(t *testing.T) {
-	s := &metricSpec{
+	s := &public.MetricSpec{
 		Name:        "test1",
 		Description: "Test metric 1",
-		Labels: []metricLabel{
+		Labels: []public.MetricLabel{
 			{
 				Name:      "source",
 				Value:     "source_ip",

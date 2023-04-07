@@ -20,11 +20,11 @@ import (
 	"strconv"
 )
 
-func getFilterMatcher(rule *flowMatchRule) (*flowMatcher, error) {
-	ret := &flowMatcher{
-		rule: rule,
+func getFilterMatcher(rule public.FlowMatchRule) (*FlowMatcher, error) {
+	ret := &FlowMatcher{
+		rule: &rule,
 	}
-	fn, err := getFilterFn(rule)
+	fn, err := getFilterFn(&rule)
 	if err != nil {
 		return nil, err
 	}
@@ -32,47 +32,63 @@ func getFilterMatcher(rule *flowMatchRule) (*flowMatcher, error) {
 	return ret, nil
 }
 
-func getFilterFn(rule *flowMatchRule) (filterFn, error) {
+func getCidrFilterFn(rule *public.FlowMatchRule) (FilterFn, error) {
+	_, ipnet, err := net.ParseCIDR(*rule.Cidr)
+	if err != nil {
+		return nil, err
+	}
+	return func(flow *public.Flow) bool {
+		ip := flow.AsIp(rule.Match)
+		if ip == nil {
+			return false
+		}
+		return ipnet.Contains(ip)
+	}, nil
+}
+
+func getL2LFilterFn(rule *public.FlowMatchRule) (FilterFn, error) {
+	return func(flow *public.Flow) bool {
+		return isLocalIp(flow.AsIp("source_ip")) && isLocalIp(flow.AsIp("destination_ip"))
+	}, nil
+}
+
+func getIsFilterFn(rule *public.FlowMatchRule) (FilterFn, error) {
+	ip := net.ParseIP(*rule.Is)
+	return func(flow *public.Flow) bool {
+		v := flow.AsIp(rule.Match)
+		if v == nil && ip == nil {
+			return true
+		}
+		if v == nil || ip == nil {
+			return false
+		}
+		return ip.Equal(v)
+	}, nil
+}
+
+func getIsUint32FilterFn(rule *public.FlowMatchRule) (FilterFn, error) {
+	i, err := strconv.Atoi(*rule.IsUint32)
+	if err != nil {
+		return nil, err
+	}
+	return func(flow *public.Flow) bool {
+		v := flow.AsUint32(rule.Match)
+		return v != nil && *v == uint32(i)
+	}, nil
+}
+
+func getFilterFn(rule *public.FlowMatchRule) (FilterFn, error) {
 	if rule.Local2Local != nil && *rule.Local2Local {
-		return func(flow *public.Flow) bool {
-			return isLocalIp(flow.AsIp("source_ip")) && isLocalIp(flow.AsIp("destination_ip"))
-		}, nil
+		return getL2LFilterFn(rule)
 	}
 	if rule.Cidr != nil {
-		_, ipnet, err := net.ParseCIDR(*rule.Cidr)
-		if err != nil {
-			return nil, err
-		}
-		return func(flow *public.Flow) bool {
-			ip := flow.AsIp(rule.Match)
-			if ip == nil {
-				return false
-			}
-			return ipnet.Contains(ip)
-		}, nil
+		return getCidrFilterFn(rule)
 	}
 	if rule.Is != nil {
-		ip := net.ParseIP(*rule.Is)
-		return func(flow *public.Flow) bool {
-			v := flow.AsIp(rule.Match)
-			if v == nil && ip == nil {
-				return true
-			}
-			if v == nil || ip == nil {
-				return false
-			}
-			return ip.Equal(v)
-		}, nil
+		return getIsFilterFn(rule)
 	}
 	if rule.IsUint32 != nil {
-		i, err := strconv.Atoi(*rule.IsUint32)
-		if err != nil {
-			return nil, err
-		}
-		return func(flow *public.Flow) bool {
-			v := flow.AsUint32(rule.Match)
-			return v != nil && *v == uint32(i)
-		}, nil
+		return getIsUint32FilterFn(rule)
 	}
 	return nil, nil
 }

@@ -32,8 +32,12 @@ var (
 		"203.0.113.0/24,224.0.0.0/4,233.252.0.0/24,240.0.0.0/4,255.255.255.255/32",
 	}
 	enrichers = map[string]public.Enricher{
-		"maxmind_country":  &maxmindCountry{},
-		"maxmind_asn":      &maxmindAsn{},
+		"maxmind_country": &maxmindCountry{
+			log: log.New(),
+		},
+		"maxmind_asn": &maxmindAsn{
+			log: log.New(),
+		},
 		"interface_mapper": &interfaceName{},
 		"protocol_name":    &protocolName{},
 	}
@@ -69,6 +73,7 @@ func (m *maxmindCountry) Configure(cfg map[string]interface{}) {
 	} else {
 		m.dir = dir.(string)
 	}
+	m.log.Infof("Using directory %s for Country GeoIP", m.dir)
 }
 
 func (m *maxmindCountry) Close() error {
@@ -170,7 +175,7 @@ func (p *protocolName) Close() error {
 }
 
 func (p *protocolName) Configure(_ map[string]interface{}) {
-
+	// not used in this enricher
 }
 
 func (p *protocolName) Start() error {
@@ -212,6 +217,7 @@ func (m *maxmindAsn) Configure(cfg map[string]interface{}) {
 	} else {
 		m.dir = dir.(string)
 	}
+	m.log.Infof("Using directory %s for ASN GeoIP", m.dir)
 }
 
 func (m *maxmindAsn) Close() error {
@@ -228,7 +234,6 @@ func (m *maxmindAsn) Start() error {
 	}
 	m.isOpen = true
 	m.db = db
-	m.log = log.New()
 	return nil
 }
 
