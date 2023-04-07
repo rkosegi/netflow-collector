@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-func (m *metricEntry) init(prefix string, spec *metricSpec, flushInterval int) {
+func (m *metricEntry) init(prefix string, spec *public.MetricSpec, flushInterval int) {
 	labels := make([]*labelProcessor, 0)
 	labelNames := make([]string, 0)
 	for _, label := range spec.Labels {
@@ -54,7 +54,7 @@ func (m *metricEntry) apply(flow *public.Flow) {
 	m.counter.WithLabelValues(labelValues...).Add(float64(flow.Raw("bytes").(uint64)))
 }
 
-func (lp *labelProcessor) init(label metricLabel) {
+func (lp *labelProcessor) init(label public.MetricLabel) {
 	lp.attr = label.Value
 	lp.applyFn = lp.apply
 	lp.onMissingFn = func(flow *public.Flow) string {

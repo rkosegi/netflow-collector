@@ -1,0 +1,78 @@
+---
+netflow_endpoint: 0.0.0.0:30000
+telemetry_endpoint: 0.0.0.0:30001
+flush_interval: 120
+pipeline:
+  filter:
+    - local-to-local: true
+    - match: source_ip
+      is: 0.0.0.0
+    - match: source_ip
+      is: 255.255.255.255
+    - match: destination_ip
+      is: 0.0.0.0
+    - match: destination_ip
+      is: 255.255.255.255
+  enrich:
+    - interface_mapper
+    - maxmind_country
+    - maxmind_asn
+    - protocol_name
+  metrics:
+    prefix: netflow
+    items:
+      - name: traffic_detail
+        description: Traffic detail
+        labels:
+          - name: sampler
+            value: sampler
+            converter: ipv4
+          - name: protocol
+            value: proto_name
+            converter: str
+          - name: source_port
+            value: source_port
+            converter: uint32
+          - name: destination_port
+            value: destination_port
+            converter: uint32
+          - name: source_country
+            value: source_country
+            converter: str
+            on_missing: empty_str
+          - name: destination_country
+            value: destination_country
+            converter: str
+          - name: source
+            value: source_ip
+            converter: ipv4
+          - name: destination
+            value: destination_ip
+            converter: ipv4
+          - name: input_interface
+            value: input_interface
+            converter: uint32
+          - name: output_interface
+            value: output_interface
+            converter: uint32
+          - name: source_asn_org
+            value: source_asn_org
+            converter: str
+          - name: destination_asn_org
+            value: destination_asn_org
+            converter: str
+          - name: output_interface_name
+            converter: str
+            value: output_interface_name
+          - name: input_interface_name
+            converter: str
+            value: input_interface_name
+extensions:
+  maxmind_country:
+    mmdb_dir: /usr/share/GeoIP/
+  maxmind_asn:
+    mmdb_dir: /usr/share/GeoIP/
+  interface_mapper:
+    "1": wan0
+    "2": lan
+    "7": bridge1

@@ -26,7 +26,7 @@ func TestCidrFn(t *testing.T) {
 	flow1.AddAttr("source_ip", []byte{192, 168, 1, 14})
 	flow2 := &public.Flow{}
 	flow2.AddAttr("source_ip", []byte{10, 11, 12, 13})
-	fn, err := getFilterFn(&flowMatchRule{
+	fn, err := getFilterFn(&public.FlowMatchRule{
 		Match: "source_ip",
 		Cidr:  &subnet1,
 	})
@@ -41,7 +41,7 @@ func TestIsFn(t *testing.T) {
 	flow1.AddAttr("source_ip", []byte{192, 168, 1, 14})
 	flow2 := &public.Flow{}
 	flow2.AddAttr("source_ip", []byte{10, 11, 12, 13})
-	fn, err := getFilterFn(&flowMatchRule{
+	fn, err := getFilterFn(&public.FlowMatchRule{
 		Match: "source_ip",
 		Is:    &ip,
 	})

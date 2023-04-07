@@ -22,18 +22,17 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rkosegi/ipfix-collector/pkg/public"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
+	"sync"
 )
 
 type col struct {
 	log                 *log.Logger
-	cfgFile             string
-	cfg                 config
-	filters             []*flowMatcher
+	ready               sync.WaitGroup
+	cfg                 *public.Config
+	filters             []FlowMatcher
 	enrichers           []public.Enricher
 	metrics             []*metricEntry
 	droppedFlowsCounter *prometheus.CounterVec
@@ -70,6 +69,10 @@ func (c *col) process(msg *flowprotob.FlowMessage) {
 	}
 }
 
+func (c *col) waitUntilReady() {
+	c.ready.Wait()
+}
+
 func (c *col) Run() error {
 	err := c.start()
 	if err != nil {
@@ -91,45 +94,9 @@ func (c *col) Run() error {
 	return s.FlowRoutine(4, host, iport, true)
 }
 
-func (c *col) start() error {
-	c.log = log.New()
-	c.log.Printf("Loading config from %s", c.cfgFile)
-	data, err := os.ReadFile(c.cfgFile)
-	if err != nil {
-		return err
-	}
-	err = yaml.Unmarshal(data, &c.cfg)
-	if err != nil {
-		return err
-	}
-
-	c.totalFlowsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: c.cfg.Pipeline.Metrics.Prefix,
-		Subsystem: "server",
-		Name:      "total_flows",
-		Help:      "The total number of ingested flows.",
-	}, []string{"sampler"})
-
-	c.droppedFlowsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: c.cfg.Pipeline.Metrics.Prefix,
-		Subsystem: "server",
-		Name:      "dropped_flows",
-		Help:      "The total number of dropped flows.",
-	}, []string{"sampler"})
-
-	c.filters = make([]*flowMatcher, 0)
-	c.enrichers = make([]public.Enricher, 0)
-	c.metrics = make([]*metricEntry, 0)
-	if c.cfg.Pipeline.Filter != nil {
-		for _, rule := range *c.cfg.Pipeline.Filter {
-			m, err := getFilterMatcher(&rule)
-			if err != nil {
-				return err
-			}
-			c.filters = append(c.filters, m)
-		}
-	}
+func (c *col) startEnrichers() (err error) {
 	if c.cfg.Pipeline.Enrich != nil {
+		c.log.Infof("Enrichers: %d", len(*c.cfg.Pipeline.Enrich))
 		for _, name := range *c.cfg.Pipeline.Enrich {
 			e := getEnricher(name)
 			if e == nil {
@@ -146,9 +113,51 @@ func (c *col) start() error {
 			c.enrichers = append(c.enrichers, e)
 		}
 	}
+	return nil
+}
+
+func (c *col) startFilters() error {
+	if c.cfg.Pipeline.Filter != nil {
+		c.log.Infof("Filter rules: %d", len(*c.cfg.Pipeline.Filter))
+		for _, rule := range *c.cfg.Pipeline.Filter {
+			m, err := getFilterMatcher(rule)
+			if err != nil {
+				return err
+			}
+			c.filters = append(c.filters, *m)
+		}
+	}
+	return nil
+}
+
+func (c *col) start() (err error) {
+	defer c.ready.Done()
+
+	c.log = log.New()
+	c.totalFlowsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: c.cfg.Pipeline.Metrics.Prefix,
+		Subsystem: "server",
+		Name:      "total_flows",
+		Help:      "The total number of ingested flows.",
+	}, []string{"sampler"})
+
+	c.droppedFlowsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: c.cfg.Pipeline.Metrics.Prefix,
+		Subsystem: "server",
+		Name:      "dropped_flows",
+		Help:      "The total number of dropped flows.",
+	}, []string{"sampler"})
+
+	if err = c.startFilters(); err != nil {
+		return err
+	}
+	if err = c.startEnrichers(); err != nil {
+		return err
+	}
 	if c.cfg.FlushInterval == 0 {
 		c.cfg.FlushInterval = 180
 	}
+	c.log.Infof("Metrics: %d", len(c.cfg.Pipeline.Metrics.Items))
 	for _, metric := range c.cfg.Pipeline.Metrics.Items {
 		me := &metricEntry{}
 		me.init(c.cfg.Pipeline.Metrics.Prefix, &metric, c.cfg.FlushInterval)
@@ -166,6 +175,7 @@ func (c *col) start() error {
 			}
 		}()
 	}
+
 	return nil
 }
 
@@ -206,8 +216,13 @@ func (c *col) mapMsg(msg *flowprotob.FlowMessage) *public.Flow {
 	return f
 }
 
-func New(cfgFile string) public.Collector {
-	return &col{
-		cfgFile: cfgFile,
+func New(cfg *public.Config) public.Collector {
+	c := &col{
+		cfg:       cfg,
+		filters:   []FlowMatcher{},
+		enrichers: []public.Enricher{},
+		metrics:   []*metricEntry{},
 	}
+	c.ready.Add(1)
+	return c
 }

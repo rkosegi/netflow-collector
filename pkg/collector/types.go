@@ -17,6 +17,8 @@ package collector
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rkosegi/ipfix-collector/pkg/public"
+	"gopkg.in/yaml.v3"
+	"os"
 	"time"
 )
 
@@ -26,51 +28,11 @@ type metricEntry struct {
 	cleaner *time.Ticker
 }
 
-type config struct {
-	NetflowEndpoint   string                            `yaml:"netflow_endpoint"`
-	TelemetryEndpoint *string                           `yaml:"telemetry_endpoint"`
-	Pipeline          pipeline                          `yaml:"pipeline"`
-	FlushInterval     int                               `yaml:"flush_interval"`
-	Extensions        map[string]map[string]interface{} `yaml:"extensions"`
-}
+type FilterFn func(flow *public.Flow) bool
 
-type pipeline struct {
-	Filter  *[]flowMatchRule `yaml:"filter,omitempty"`
-	Enrich  *[]string        `yaml:"enrich,omitempty"`
-	Metrics metricsConfig    `yaml:"metrics"`
-}
-
-type metricsConfig struct {
-	Prefix string       `yaml:"prefix"`
-	Items  []metricSpec `yaml:"items"`
-}
-
-type metricSpec struct {
-	Name        string        `yaml:"name"`
-	Description string        `yaml:"description"`
-	Labels      []metricLabel `yaml:"labels"`
-}
-
-type metricLabel struct {
-	Name      string `yaml:"name"`
-	Value     string `yaml:"value"`
-	OnMissing string `yaml:"on_missing,omitempty"`
-	Converter string `yaml:"converter"`
-}
-
-type filterFn func(flow *public.Flow) bool
-
-type flowMatchRule struct {
-	Match       string  `yaml:"match"`
-	Cidr        *string `yaml:"cidr,omitempty"`
-	Is          *string `yaml:"is,omitempty"`
-	IsUint32    *string `yaml:"isUint32,omitempty"`
-	Local2Local *bool   `yaml:"local-to-local"`
-}
-
-type flowMatcher struct {
-	rule *flowMatchRule
-	fn   filterFn
+type FlowMatcher struct {
+	rule *public.FlowMatchRule
+	fn   FilterFn
 }
 
 type labelProcessor struct {
@@ -78,4 +40,17 @@ type labelProcessor struct {
 	applyFn     func(flow *public.Flow) string
 	onMissingFn func(flow *public.Flow) string
 	converterFn func(interface{}) string
+}
+
+func LoadConfig(file string) (*public.Config, error) {
+	var cfg public.Config
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	err = yaml.Unmarshal(data, &cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }

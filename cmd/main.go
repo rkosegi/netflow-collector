@@ -24,5 +24,9 @@ func main() {
 	flag.StringVar(&cfgFile, "config", "config.yaml", "Path to the configuration file.")
 	flag.Parse()
 
-	panic(collector.New(cfgFile).Run())
+	if cfg, err := collector.LoadConfig(cfgFile); err != nil {
+		panic(err)
+	} else {
+		panic(collector.New(cfg).Run())
+	}
 }
