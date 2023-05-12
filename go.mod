@@ -17,7 +17,7 @@ module github.com/rkosegi/ipfix-collector
 go 1.19
 
 require (
-	github.com/cloudflare/goflow/v3 v3.4.4
+	github.com/cloudflare/goflow/v3 v3.4.5
 	github.com/maxmind/mmdbwriter v0.0.0-20230320152106-28b0f681af62
 	github.com/oschwald/geoip2-golang v1.8.0
 	github.com/prometheus/client_golang v1.15.0
