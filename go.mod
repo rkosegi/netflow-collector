@@ -18,7 +18,7 @@ go 1.20
 
 require (
 	github.com/cloudflare/goflow/v3 v3.4.5
-	github.com/maxmind/mmdbwriter v0.0.0-20230320152106-28b0f681af62
+	github.com/maxmind/mmdbwriter v0.0.0-20230809172643-c85a2f1f1912
 	github.com/oschwald/geoip2-golang v1.9.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/client_model v0.4.0

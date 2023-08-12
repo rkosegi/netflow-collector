@@ -32,8 +32,8 @@ github.com/libp2p/go-reuseport v0.0.1/go.mod h1:jn6RmB1ufnQwl0Q1f+YxAj8isJgDCQza
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/matttproud/golang_protobuf_extensions v1.0.4 h1:mmDVorXM7PCGKw94cs5zkfA9PSy5pEvNWRP0ET0TIVo=
 github.com/matttproud/golang_protobuf_extensions v1.0.4/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
-github.com/maxmind/mmdbwriter v0.0.0-20230320152106-28b0f681af62 h1:Bc7ZYEQ3o04WkCGF5pNG4w6sKZpss7ggUplkXiRtb98=
-github.com/maxmind/mmdbwriter v0.0.0-20230320152106-28b0f681af62/go.mod h1:OTBr647IJpdisFRbIxLiEFMVL/lcPrmwxsvEIa/RQ9k=
+github.com/maxmind/mmdbwriter v0.0.0-20230809172643-c85a2f1f1912 h1:5FWj4XGowQQYt3nz/1tzvfP0Yu6VgyCP6xVtB4X0tzw=
+github.com/maxmind/mmdbwriter v0.0.0-20230809172643-c85a2f1f1912/go.mod h1:1RuJQ3t4j6AAczNy9GfoA1U8glYwwIwrNh5WHXatOPE=
 github.com/oschwald/geoip2-golang v1.9.0 h1:uvD3O6fXAXs+usU+UGExshpdP13GAqp4GBrzN7IgKZc=
 github.com/oschwald/geoip2-golang v1.9.0/go.mod h1:BHK6TvDyATVQhKNbQBdrj9eAvuwOMi2zSFXizL3K81Y=
 github.com/oschwald/maxminddb-golang v1.11.0 h1:aSXMqYR/EPNjGE8epgqwDay+P30hCBZIveY0WZbAWh0=
