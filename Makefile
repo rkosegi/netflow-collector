@@ -16,10 +16,13 @@ ifndef CR
 override CR = ghcr.io/rkosegi
 endif
 
+build-quick:
+	go build  -o netflow-collector cmd/main.go
+
 clean:
 	rm -frv build
 
 build:
 	docker build -t $(CR)/netflow-collector:1.0.1 .
 
-.PHONY: clean build
+.PHONY: clean build build-quick

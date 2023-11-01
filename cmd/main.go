@@ -15,18 +15,39 @@
 package main
 
 import (
-	"flag"
+	"github.com/alecthomas/kingpin/v2"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
+	"github.com/prometheus/common/promlog"
+	"github.com/prometheus/common/promlog/flag"
+	"github.com/prometheus/common/version"
 	"github.com/rkosegi/ipfix-collector/pkg/collector"
+	"runtime/debug"
+)
+
+var (
+	logger     = log.NewNopLogger()
+	configFile = kingpin.Flag("config", "Path to the configuration file.").Default("config.yaml").String()
 )
 
 func main() {
-	var cfgFile string
-	flag.StringVar(&cfgFile, "config", "config.yaml", "Path to the configuration file.")
-	flag.Parse()
 
-	if cfg, err := collector.LoadConfig(cfgFile); err != nil {
+	kingpin.Version(version.Print("ipfix_exporter"))
+	promlogConfig := &promlog.Config{}
+	flag.AddFlags(kingpin.CommandLine, promlogConfig)
+	kingpin.HelpFlag.Short('h')
+	kingpin.Parse()
+	logger = promlog.New(promlogConfig)
+	collector.SetBaseLogger(logger)
+
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		level.Info(logger).Log("go.version", bi.GoVersion)
+	}
+
+	level.Debug(logger).Log("config", *configFile)
+	if cfg, err := collector.LoadConfig(*configFile); err != nil {
 		panic(err)
 	} else {
-		panic(collector.New(cfg).Run())
+		panic(collector.New(cfg, logger).Run())
 	}
 }

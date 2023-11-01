@@ -172,7 +172,7 @@ func TestServer(t *testing.T) {
 	cfg.Extensions["maxmind_country"]["mmdb_dir"] = d
 	genMockmmdb(d, t)
 
-	c := New(cfg)
+	c := New(cfg, baseLogger)
 	go func() {
 		_ = c.Run()
 	}()

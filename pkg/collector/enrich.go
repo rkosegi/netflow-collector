@@ -16,9 +16,9 @@ package collector
 
 import (
 	"fmt"
+	"github.com/go-kit/log"
 	"github.com/oschwald/geoip2-golang"
 	"github.com/rkosegi/ipfix-collector/pkg/public"
-	log "github.com/sirupsen/logrus"
 	"net"
 	"strconv"
 	"strings"
@@ -32,12 +32,8 @@ var (
 		"203.0.113.0/24,224.0.0.0/4,233.252.0.0/24,240.0.0.0/4,255.255.255.255/32",
 	}
 	enrichers = map[string]public.Enricher{
-		"maxmind_country": &maxmindCountry{
-			log: log.New(),
-		},
-		"maxmind_asn": &maxmindAsn{
-			log: log.New(),
-		},
+		"maxmind_country":  &maxmindCountry{},
+		"maxmind_asn":      &maxmindAsn{},
 		"interface_mapper": &interfaceName{},
 		"protocol_name":    &protocolName{},
 	}
@@ -61,7 +57,7 @@ func getEnricher(name string) public.Enricher {
 }
 
 type maxmindCountry struct {
-	log    *log.Logger
+	logger log.Logger
 	isOpen bool
 	dir    string
 	db     *geoip2.Reader
@@ -73,7 +69,8 @@ func (m *maxmindCountry) Configure(cfg map[string]interface{}) {
 	} else {
 		m.dir = dir.(string)
 	}
-	m.log.Infof("Using directory %s for Country GeoIP", m.dir)
+	m.logger = log.With(baseLogger, "component", "geoip_country")
+	m.logger.Log("msg", fmt.Sprintf("using directory %s for Country GeoIP", m.dir))
 }
 
 func (m *maxmindCountry) Close() error {
@@ -128,7 +125,6 @@ func (m *maxmindCountry) Start() error {
 	}
 	m.isOpen = true
 	m.db = db
-	m.log = log.New()
 	return nil
 }
 
@@ -205,7 +201,7 @@ func (p *protocolName) Enrich(flow *public.Flow) {
 }
 
 type maxmindAsn struct {
-	log    *log.Logger
+	logger log.Logger
 	isOpen bool
 	dir    string
 	db     *geoip2.Reader
@@ -217,7 +213,8 @@ func (m *maxmindAsn) Configure(cfg map[string]interface{}) {
 	} else {
 		m.dir = dir.(string)
 	}
-	m.log.Infof("Using directory %s for ASN GeoIP", m.dir)
+	m.logger = log.With(baseLogger, "component", "geoip_asn")
+	m.logger.Log("msg", fmt.Sprintf("using directory %s for ASN GeoIP", m.dir))
 }
 
 func (m *maxmindAsn) Close() error {
