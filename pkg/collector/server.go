@@ -19,6 +19,7 @@ import (
 	"github.com/cloudflare/goflow/v3/pb"
 	"github.com/cloudflare/goflow/v3/utils"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rkosegi/ipfix-collector/pkg/public"
 	log "github.com/sirupsen/logrus"
@@ -26,6 +27,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type col struct {
@@ -37,17 +39,25 @@ type col struct {
 	metrics             []*metricEntry
 	droppedFlowsCounter *prometheus.CounterVec
 	totalFlowsCounter   *prometheus.CounterVec
+	scrapingSum         *prometheus.SummaryVec
 }
 
 func (c *col) Describe(descs chan<- *prometheus.Desc) {
 	c.droppedFlowsCounter.Describe(descs)
 	c.totalFlowsCounter.Describe(descs)
+	c.scrapingSum.Describe(descs)
 	for _, m := range c.metrics {
 		m.counter.Describe(descs)
 	}
 }
 
 func (c *col) Collect(ch chan<- prometheus.Metric) {
+	start := time.Now()
+	defer func() {
+		c.scrapingSum.WithLabelValues().Observe(float64(time.Now().UnixMicro() - start.UnixMicro()))
+		c.scrapingSum.Collect(ch)
+	}()
+
 	c.droppedFlowsCounter.Collect(ch)
 	c.totalFlowsCounter.Collect(ch)
 	for _, m := range c.metrics {
@@ -140,14 +150,18 @@ func (c *col) start() (err error) {
 		Name:      "total_flows",
 		Help:      "The total number of ingested flows.",
 	}, []string{"sampler"})
-
 	c.droppedFlowsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: c.cfg.Pipeline.Metrics.Prefix,
 		Subsystem: "server",
 		Name:      "dropped_flows",
 		Help:      "The total number of dropped flows.",
 	}, []string{"sampler"})
-
+	c.scrapingSum = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		Namespace: c.cfg.Pipeline.Metrics.Prefix,
+		Subsystem: "server",
+		Name:      "scrape",
+		Help:      "The summary of time spent by scraping in microseconds",
+	}, []string{})
 	if err = c.startFilters(); err != nil {
 		return err
 	}
@@ -166,13 +180,11 @@ func (c *col) start() (err error) {
 
 	if c.cfg.TelemetryEndpoint != nil {
 		prometheus.MustRegister(c)
+		prometheus.MustRegister(collectors.NewBuildInfoCollector())
 		http.Handle("/metrics", promhttp.Handler())
 		c.log.Infof("Starting metrics server @ %s", *c.cfg.TelemetryEndpoint)
 		go func() {
-			err := http.ListenAndServe(*c.cfg.TelemetryEndpoint, nil)
-			if err != nil {
-				c.log.Errorf("Fail to start metric server %v", err)
-			}
+			panic(http.ListenAndServe(*c.cfg.TelemetryEndpoint, nil))
 		}()
 	}
 
