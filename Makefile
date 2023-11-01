@@ -23,6 +23,6 @@ clean:
 	rm -frv build
 
 build:
-	docker build -t $(CR)/netflow-collector:1.0.1 .
+	docker build -t $(CR)/netflow-collector:1.0.2 .
 
 .PHONY: clean build build-quick

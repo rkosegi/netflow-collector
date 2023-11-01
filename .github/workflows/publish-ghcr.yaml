@@ -34,7 +34,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}},value=1.0.1
+            type=semver,pattern={{version}},value=1.0.2
       - name: Build and push container image
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09
         with:
