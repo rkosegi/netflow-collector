@@ -25,4 +25,8 @@ clean:
 build:
 	docker build -t $(CR)/netflow-collector:1.0.2 .
 
-.PHONY: clean build build-quick
+test:
+	 go test -v ./...
+
+
+.PHONY: clean build build-quick test
