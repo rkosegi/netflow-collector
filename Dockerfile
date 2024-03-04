@@ -1,18 +1,44 @@
-FROM golang:1.21 AS builder
+# Copyright 2021 Richard Kosegi
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+FROM golang:1.21 as builder
 
 WORKDIR /build
-COPY go.mod go.mod
-COPY go.sum go.sum
-RUN go mod download
-COPY pkg/ pkg/
-COPY cmd/ cmd/
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o netflow-collector cmd/main.go
+COPY . /build
+
+RUN make build-local
 
 FROM gcr.io/distroless/static:nonroot
+
+ARG VERSION
+ARG BUILD_DATE
+ARG GIT_COMMIT
+
 WORKDIR /
 COPY --from=builder /build/netflow-collector .
+
+LABEL org.opencontainers.image.url="https://github.com/rkosegi/netflow-collector" \
+      org.opencontainers.image.documentation="https://github.com/rkosegi/netflow-collector/blob/main/README.md" \
+      org.opencontainers.image.source="https://github.com/rkosegi/netflow-collector.git" \
+      org.opencontainers.image.title="Netflow collector" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.vendor="rkosegi" \
+      org.opencontainers.image.description="Simple Netflow V5 exporter for prometheus" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${GIT_COMMIT}" \
+      org.opencontainers.image.version="${VERSION}"
 
 USER 65532:65532
 
 ENTRYPOINT ["/netflow-collector"]
-
