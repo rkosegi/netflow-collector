@@ -15,13 +15,17 @@
 package collector
 
 import (
+	"context"
 	"fmt"
-	"github.com/go-kit/log"
-	"github.com/oschwald/geoip2-golang"
-	"github.com/rkosegi/ipfix-collector/pkg/public"
 	"net"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/go-kit/log"
+	"github.com/jellydator/ttlcache/v3"
+	"github.com/oschwald/geoip2-golang"
+	"github.com/rkosegi/ipfix-collector/pkg/public"
 )
 
 var (
@@ -36,6 +40,7 @@ var (
 		"maxmind_asn":      &maxmindAsn{},
 		"interface_mapper": &interfaceName{},
 		"protocol_name":    &protocolName{},
+		"reverse_dns":      &reverseDNS{},
 	}
 	localCidrs []*net.IPNet
 )
@@ -249,4 +254,71 @@ func (m *maxmindAsn) Enrich(flow *public.Flow) {
 			}
 		}
 	}
+}
+
+type reverseDNS struct {
+	ttl   time.Duration
+	cache *ttlcache.Cache[string, string]
+}
+
+func (m *reverseDNS) Configure(cfg map[string]interface{}) {
+	durationResult, ok := cfg["cache_duration"]
+	if !ok {
+		// if not found, set default
+		m.ttl = time.Hour
+		return
+	}
+
+	durationString, ok := durationResult.(string)
+	if !ok {
+		panic("cache_duration (if specified) must be a Go duration string, e.g. 1h")
+	}
+
+	var err error
+	m.ttl, err = time.ParseDuration(durationString)
+	if err != nil {
+		panic("cache_duration (if specified) must be a Go duration string, e.g. 1h")
+	}
+}
+
+func (m *reverseDNS) Close() error {
+	return nil
+}
+
+func (m *reverseDNS) Enrich(flow *public.Flow) {
+	sourceIp := flow.AsIp("source_ip")
+	if isLocalIp(sourceIp) {
+		flow.AddAttr("source_dns", "local")
+	} else {
+		flow.AddAttr("source_dns", m.cache.Get(sourceIp.String()).Value())
+	}
+	destIp := flow.AsIp("destination_ip")
+	if isLocalIp(destIp) {
+		flow.AddAttr("destination_dns", "local")
+	} else {
+		flow.AddAttr("destination_dns", m.cache.Get(destIp.String()).Value())
+	}
+}
+
+func (m *reverseDNS) Start() error {
+	logger := log.With(baseLogger, "component", "reverse_dns")
+	ctx := context.Background()
+	m.cache = ttlcache.New(
+		ttlcache.WithTTL[string, string](m.ttl),
+		ttlcache.WithDisableTouchOnHit[string, string](),
+		ttlcache.WithLoader(ttlcache.LoaderFunc[string, string](
+			func(c *ttlcache.Cache[string, string], key string) *ttlcache.Item[string, string] {
+				logger.Log("lookup", key)
+				result := "unknown"
+				names, err := net.DefaultResolver.LookupAddr(ctx, key)
+				if err == nil && len(names) != 0 {
+					result = strings.TrimRight(names[0], ".")
+				}
+				logger.Log("result", result)
+				return c.Set(key, result, ttlcache.DefaultTTL)
+			},
+		)),
+	)
+	go m.cache.Start()
+	return nil
 }
