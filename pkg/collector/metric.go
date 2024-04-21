@@ -35,12 +35,13 @@ func (m *metricEntry) init(prefix string, spec *public.MetricSpec, flushInterval
 		labels = append(labels, lp)
 	}
 	m.labels = labels
-	m.counter = prometheus.NewCounterVec(prometheus.CounterOpts{
+	m.opts = prometheus.CounterOpts{
 		Namespace: prefix,
 		Subsystem: "flow",
 		Name:      spec.Name,
 		Help:      spec.Description,
-	}, labelNames)
+	}
+	m.counter = prometheus.NewCounterVec(m.opts, labelNames)
 	m.metrics = ttlcache.New(
 		ttlcache.WithTTL[string, prometheus.Counter](time.Duration(flushInterval) * time.Second),
 	)
@@ -65,13 +66,19 @@ func (m *metricEntry) apply(flow *public.Flow) {
 	}
 	m.metrics.Get(strings.Join(labelValues, "|"), ttlcache.WithLoader(ttlcache.LoaderFunc[string, prometheus.Counter](
 		func(c *ttlcache.Cache[string, prometheus.Counter], key string) *ttlcache.Item[string, prometheus.Counter] {
-			return c.Set(key, m.counter.WithLabelValues(labelValues...), ttlcache.DefaultTTL)
+			opts := m.opts
+			opts.ConstLabels = make(prometheus.Labels)
+			for i, lp := range m.labels {
+				opts.ConstLabels[lp.name] = labelValues[i]
+			}
+			return c.Set(key, prometheus.NewCounter(opts), ttlcache.DefaultTTL)
 		},
 	))).Value().Add(float64(flow.Raw("bytes").(uint64)))
 }
 
 func (lp *labelProcessor) init(label public.MetricLabel) {
 	lp.attr = label.Value
+	lp.name = label.Name
 	lp.applyFn = lp.apply
 	lp.onMissingFn = func(flow *public.Flow) string {
 		return ""
