@@ -63,7 +63,7 @@ Full example can be found [here](docs/config.yaml)
     - `mmdb_dir` - path to directory which holds [MaxMind GeoIP DB files](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data)
 
 - `maxmind_asn`
--
+
   MaxMind GeoLite country data are used to add source and destination autonomous system (if applicable)
   - used attributes: `source_ip`, `destination_ip`
   - added attributes: `source_asn_org`, `destination_asn_org`
@@ -72,6 +72,32 @@ Full example can be found [here](docs/config.yaml)
 
 - `interface_mapper`
 - `protocol_name`
+
+- `reverse_dns`
+
+  Does a reverse DNS lookup for IP and selects the first entry returned. `unknown` set if none found. Results (including missing) cached per `cache_duration`.
+
+  - used attributes: `source_ip`, `destination_ip`
+  - added attributes: `source_dns`, `destination_dns`
+  - configuration options:
+    - `cache_duration` - how long to cache result for. Default `1h`.
+
+  e.g. add `reverse_dns` under `enrich:` and the following under `labels:`:
+
+  ```yaml
+  - name: source_ip
+    value: source_ip
+    converter: ipv4
+  - name: destination_ip
+    value: destination_ip
+    converter: ipv4
+  - name: source_dns
+    value: source_dns
+    converter: str
+  - name: destination_dns
+    value: destination_dns
+    converter: str
+  ```
 
 ## Run using podman/docker
 
