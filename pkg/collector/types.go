@@ -15,17 +15,18 @@
 package collector
 
 import (
+	"os"
+
+	"github.com/jellydator/ttlcache/v3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rkosegi/ipfix-collector/pkg/public"
 	"gopkg.in/yaml.v3"
-	"os"
-	"time"
 )
 
 type metricEntry struct {
 	counter *prometheus.CounterVec
 	labels  []*labelProcessor
-	cleaner *time.Ticker
+	metrics *ttlcache.Cache[string, prometheus.Counter]
 }
 
 type FilterFn func(flow *public.Flow) bool
