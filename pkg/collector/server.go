@@ -16,7 +16,8 @@ package collector
 
 import (
 	"fmt"
-	"github.com/cloudflare/goflow/v3/pb"
+
+	flowprotob "github.com/cloudflare/goflow/v3/pb"
 	"github.com/cloudflare/goflow/v3/utils"
 	"github.com/go-kit/log"
 	"github.com/prometheus/client_golang/prometheus"
@@ -48,7 +49,7 @@ func (c *col) Describe(descs chan<- *prometheus.Desc) {
 	c.totalFlowsCounter.Describe(descs)
 	c.scrapingSum.Describe(descs)
 	for _, m := range c.metrics {
-		m.counter.Describe(descs)
+		m.Describe(descs)
 	}
 }
 
@@ -62,7 +63,7 @@ func (c *col) Collect(ch chan<- prometheus.Metric) {
 	c.droppedFlowsCounter.Collect(ch)
 	c.totalFlowsCounter.Collect(ch)
 	for _, m := range c.metrics {
-		m.counter.Collect(ch)
+		m.Collect(ch)
 	}
 }
 

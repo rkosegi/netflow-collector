@@ -15,11 +15,14 @@
 package collector
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rkosegi/ipfix-collector/pkg/public"
 	"net"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/jellydator/ttlcache/v3"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rkosegi/ipfix-collector/pkg/public"
 )
 
 func (m *metricEntry) init(prefix string, spec *public.MetricSpec, flushInterval int) {
@@ -38,12 +41,21 @@ func (m *metricEntry) init(prefix string, spec *public.MetricSpec, flushInterval
 		Name:      spec.Name,
 		Help:      spec.Description,
 	}, labelNames)
-	m.cleaner = time.NewTicker(time.Second * time.Duration(flushInterval))
-	go func() {
-		for range m.cleaner.C {
-			m.counter.Reset()
-		}
-	}()
+	m.metrics = ttlcache.New(
+		ttlcache.WithTTL[string, prometheus.Counter](time.Duration(flushInterval) * time.Second),
+	)
+	go m.metrics.Start()
+}
+
+func (m *metricEntry) Collect(ch chan<- prometheus.Metric) {
+	m.metrics.Range(func(item *ttlcache.Item[string, prometheus.Counter]) bool {
+		ch <- item.Value()
+		return true
+	})
+}
+
+func (m *metricEntry) Describe(ch chan<- *prometheus.Desc) {
+	m.counter.Describe(ch)
 }
 
 func (m *metricEntry) apply(flow *public.Flow) {
@@ -51,7 +63,11 @@ func (m *metricEntry) apply(flow *public.Flow) {
 	for _, lp := range m.labels {
 		labelValues = append(labelValues, lp.apply(flow))
 	}
-	m.counter.WithLabelValues(labelValues...).Add(float64(flow.Raw("bytes").(uint64)))
+	m.metrics.Get(strings.Join(labelValues, "|"), ttlcache.WithLoader(ttlcache.LoaderFunc[string, prometheus.Counter](
+		func(c *ttlcache.Cache[string, prometheus.Counter], key string) *ttlcache.Item[string, prometheus.Counter] {
+			return c.Set(key, m.counter.WithLabelValues(labelValues...), ttlcache.DefaultTTL)
+		},
+	))).Value().Add(float64(flow.Raw("bytes").(uint64)))
 }
 
 func (lp *labelProcessor) init(label public.MetricLabel) {
