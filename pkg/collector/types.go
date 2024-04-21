@@ -25,6 +25,7 @@ import (
 
 type metricEntry struct {
 	counter *prometheus.CounterVec
+	opts    prometheus.CounterOpts
 	labels  []*labelProcessor
 	metrics *ttlcache.Cache[string, prometheus.Counter]
 }
@@ -38,6 +39,7 @@ type FlowMatcher struct {
 
 type labelProcessor struct {
 	attr        string
+	name        string
 	applyFn     func(flow *public.Flow) string
 	onMissingFn func(flow *public.Flow) string
 	converterFn func(interface{}) string
