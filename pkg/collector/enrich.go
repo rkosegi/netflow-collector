@@ -15,9 +15,12 @@
 package collector
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -259,9 +262,20 @@ func (m *maxmindAsn) Enrich(flow *public.Flow) {
 type reverseDNS struct {
 	ttl   time.Duration
 	cache *ttlcache.Cache[string, string]
+
+	tailPiHole    bool
+	piHoleResults *ttlcache.Cache[string, string]
 }
 
 func (m *reverseDNS) Configure(cfg map[string]interface{}) {
+	tailPiholeObject, ok := cfg["tail_pihole"]
+	if ok {
+		m.tailPiHole, ok = tailPiholeObject.(bool)
+		if !ok {
+			panic("tail_pihole (if specified) must be a boolean, e.g. true (or false)")
+		}
+	}
+
 	durationResult, ok := cfg["cache_duration"]
 	if !ok {
 		// if not found, set default
@@ -281,23 +295,64 @@ func (m *reverseDNS) Configure(cfg map[string]interface{}) {
 	}
 }
 
+func (m *reverseDNS) populateCacheWithPiHoleEntries(logger log.Logger, msgs io.Reader) {
+	// cache to hold the results
+	m.piHoleResults = ttlcache.New(
+		ttlcache.WithTTL[string, string](m.ttl), // IP to name
+	)
+	go m.piHoleResults.Start()
+
+	// cache to hold the DNS masq query session
+	dnsMasqCache := ttlcache.New(
+		ttlcache.WithTTL[string, string](time.Minute), // session ID to original query
+	)
+	go dnsMasqCache.Start()
+
+	scanner := bufio.NewScanner(msgs)
+	for scanner.Scan() {
+		bits := strings.Split(scanner.Text(), " ")
+		if len(bits) < 7 {
+			continue
+		}
+		sessionId := bits[1]
+		action := bits[3]
+		switch {
+		case strings.HasPrefix(action, "query"):
+			dnsMasqCache.Set(sessionId, bits[4], ttlcache.DefaultTTL)
+		case action == "cached", action == "reply":
+			resultIP := bits[6]
+			if bits[5] == "is" && resultIP != "<CNAME>" {
+				origQuery := dnsMasqCache.Get(sessionId)
+				if origQuery != nil {
+					m.piHoleResults.Set(resultIP, origQuery.Value(), ttlcache.DefaultTTL)
+					logger.Log("tph-query", origQuery.Value(), "tph-result", resultIP)
+				}
+			}
+		}
+	}
+}
+
 func (m *reverseDNS) Close() error {
 	return nil
 }
 
+func (m *reverseDNS) reverseLookup(ip net.IP) string {
+	if isLocalIp(ip) {
+		return "local"
+	}
+	s := ip.String()
+	if m.tailPiHole {
+		piHoleResult := m.piHoleResults.Get(s)
+		if piHoleResult != nil {
+			return piHoleResult.Value()
+		}
+	}
+	return m.cache.Get(s).Value()
+}
+
 func (m *reverseDNS) Enrich(flow *public.Flow) {
-	sourceIp := flow.AsIp("source_ip")
-	if isLocalIp(sourceIp) {
-		flow.AddAttr("source_dns", "local")
-	} else {
-		flow.AddAttr("source_dns", m.cache.Get(sourceIp.String()).Value())
-	}
-	destIp := flow.AsIp("destination_ip")
-	if isLocalIp(destIp) {
-		flow.AddAttr("destination_dns", "local")
-	} else {
-		flow.AddAttr("destination_dns", m.cache.Get(destIp.String()).Value())
-	}
+	flow.AddAttr("source_dns", m.reverseLookup(flow.AsIp("source_ip")))
+	flow.AddAttr("destination_dns", m.reverseLookup(flow.AsIp("destination_ip")))
 }
 
 func (m *reverseDNS) Start() error {
@@ -320,5 +375,20 @@ func (m *reverseDNS) Start() error {
 		)),
 	)
 	go m.cache.Start()
+
+	if m.tailPiHole {
+		logger.Log("tailing", "pihole")
+		tph := exec.CommandContext(ctx, "pihole", "-t")
+		stdout, err := tph.StdoutPipe()
+		if err != nil {
+			return err
+		}
+		err = tph.Start()
+		if err != nil {
+			return err
+		}
+		go m.populateCacheWithPiHoleEntries(logger, stdout)
+	}
+
 	return nil
 }
