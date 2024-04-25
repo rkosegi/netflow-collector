@@ -81,6 +81,7 @@ Full example can be found [here](docs/config.yaml)
   - added attributes: `source_dns`, `destination_dns`
   - configuration options:
     - `cache_duration` - how long to cache result for. Default `1h`.
+    - `tail_pihole` - useful if running on a server which is running `pihole`. If set, read from `pihole -t` to populate DNS cache. This cache will be used instead of a reverse DNS lookup if available. By tailing the PiHole log, we can see the original query before `CNAME` redirection and thus give a more interesting answer. Ensure that additional logging entries are enabled, e.g. `echo log-queries=extra | sudo tee /etc/dnsmasq.d/42-add-query-ids.conf ; pihole restartdns`
 
   e.g. add `reverse_dns` under `enrich:` and the following under `labels:`:
 
