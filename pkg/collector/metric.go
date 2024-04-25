@@ -49,10 +49,12 @@ func (m *metricEntry) init(prefix string, spec *public.MetricSpec, flushInterval
 }
 
 func (m *metricEntry) Collect(ch chan<- prometheus.Metric) {
-	m.metrics.Range(func(item *ttlcache.Item[string, prometheus.Counter]) bool {
+	// we don't use the Range function on the cache as it doesn't seem to be
+	// very thread-safe, ie it emits the same value more than once which
+	// results in 500 errors when being scraped. So instead we take a copy...
+	for _, item := range m.metrics.Items() {
 		ch <- item.Value()
-		return true
-	})
+	}
 }
 
 func (m *metricEntry) Describe(ch chan<- *prometheus.Desc) {
