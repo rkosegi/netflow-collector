@@ -43,7 +43,7 @@ var (
 		"maxmind_asn":      &maxmindAsn{},
 		"interface_mapper": &interfaceName{},
 		"protocol_name":    &protocolName{},
-		"reverse_dns":      &reverseDNS{},
+		"reverse_dns":      &reverseDNS{lookupRemote: true},
 	}
 	localCidrs []*net.IPNet
 )
@@ -265,6 +265,10 @@ type reverseDNS struct {
 
 	tailPiHole    bool
 	piHoleResults *ttlcache.Cache[string, string]
+
+	lookupLocal  bool
+	lookupRemote bool
+	ipAsUnknown  bool
 }
 
 func (m *reverseDNS) Configure(cfg map[string]interface{}) {
@@ -273,6 +277,30 @@ func (m *reverseDNS) Configure(cfg map[string]interface{}) {
 		m.tailPiHole, ok = tailPiholeObject.(bool)
 		if !ok {
 			panic("tail_pihole (if specified) must be a boolean, e.g. true (or false)")
+		}
+	}
+
+	lookupLocal, ok := cfg["lookup_local"]
+	if ok {
+		m.lookupLocal, ok = lookupLocal.(bool)
+		if !ok {
+			panic("lookup_local (if specified) must be a boolean, e.g. true (or false)")
+		}
+	}
+
+	lookupRemote, ok := cfg["lookup_remote"]
+	if ok {
+		m.lookupRemote, ok = lookupRemote.(bool)
+		if !ok {
+			panic("lookup_remote (if specified) must be a boolean, e.g. true (or false)")
+		}
+	}
+
+	ipAsUnknown, ok := cfg["ip_as_unknown"]
+	if ok {
+		m.ipAsUnknown, ok = ipAsUnknown.(bool)
+		if !ok {
+			panic("ip_as_unknown (if specified) must be a boolean, e.g. true (or false)")
 		}
 	}
 
@@ -338,8 +366,15 @@ func (m *reverseDNS) Close() error {
 
 func (m *reverseDNS) reverseLookup(ip net.IP) string {
 	if isLocalIp(ip) {
-		return "local"
+		if !m.lookupLocal {
+			return "local"
+		}
+	} else {
+		if !m.lookupRemote {
+			return "remote"
+		}
 	}
+
 	s := ip.String()
 	if m.tailPiHole {
 		piHoleResult := m.piHoleResults.Get(s)
@@ -365,6 +400,9 @@ func (m *reverseDNS) Start() error {
 			func(c *ttlcache.Cache[string, string], key string) *ttlcache.Item[string, string] {
 				logger.Log("lookup", key)
 				result := "unknown"
+				if m.ipAsUnknown {
+					result = key
+				}
 				names, err := net.DefaultResolver.LookupAddr(ctx, key)
 				if err == nil && len(names) != 0 {
 					result = strings.TrimRight(names[0], ".")

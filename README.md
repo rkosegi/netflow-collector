@@ -75,13 +75,16 @@ Full example can be found [here](docs/config.yaml)
 
 - `reverse_dns`
 
-  Does a reverse DNS lookup for IP and selects the first entry returned. `unknown` set if none found. Results (including missing) cached per `cache_duration`.
+  Does a reverse DNS lookup for IP and selects the first entry returned. `unknown` set if none found and ip_as_unknown is not enabled. Results (including missing) cached per `cache_duration`.
 
   - used attributes: `source_ip`, `destination_ip`
   - added attributes: `source_dns`, `destination_dns`
   - configuration options:
     - `cache_duration` - how long to cache result for. Default `1h`.
     - `tail_pihole` - useful if running on a server which is running `pihole`. If set, read from `pihole -t` to populate DNS cache. This cache will be used instead of a reverse DNS lookup if available. By tailing the PiHole log, we can see the original query before `CNAME` redirection and thus give a more interesting answer. Ensure that additional logging entries are enabled, e.g. `echo log-queries=extra | sudo tee /etc/dnsmasq.d/42-add-query-ids.conf ; pihole restartdns`
+    - `lookup_local` - enable looking up local addresses. Default `false`.
+    - `lookup_remote` - enable looking up remote addresses. Default `true`.
+    - `ip_as_unknown` - if a reverse record is not available, uses the IP address itself rather than "unknown" string. Default `false`.
 
   e.g. add `reverse_dns` under `enrich:` and the following under `labels:`:
 
@@ -98,6 +101,36 @@ Full example can be found [here](docs/config.yaml)
   - name: destination_dns
     value: destination_dns
     converter: str
+  ```
+
+  e.g. gather in/out statistics for hosts on the local network:
+  ```yaml
+  pipline:
+  ...
+    enrich:
+      - reverse_dns
+    metrics:
+      ...
+      items:
+        - name: traffic_in
+          description: Traffic in per host
+          labels:
+            - name: host
+              value: destination_dns
+              converter: str
+        - name: traffic_out
+          description: Traffic out per host
+          labels:
+            - name: host
+              value: source_dns
+              converter: str
+
+  ...
+  extensions:
+    reverse_dns:
+      lookup_local: true
+      lookup_remote: false
+      ip_as_unknown: true
   ```
 
 ## Run using podman/docker
