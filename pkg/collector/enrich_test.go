@@ -15,9 +15,10 @@
 package collector
 
 import (
+	"testing"
+
 	"github.com/rkosegi/ipfix-collector/pkg/public"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestInterfaceMapper(t *testing.T) {
@@ -49,4 +50,40 @@ func TestProtocolName(t *testing.T) {
 	f.AddAttr("proto", uint32(1))
 	e.Enrich(f)
 	assert.Equal(t, "icmp", *f.AsString("proto_name"))
+}
+
+func TestReverseLookup(t *testing.T) {
+	f := &public.Flow{}
+
+	// NOTE: This IP address is assumed not to have a reverse DNS record.
+	//       If the test is run on a network where this is defined, it will fail.
+	f.AddAttr("source_ip", []byte{192, 168, 255, 255})
+	f.AddAttr("destination_ip", []byte{1, 1, 1, 1})
+
+	nolookup := getEnricher("reverse_dns")
+	assert.NoError(t, nolookup.Start())
+	nolookup.Configure(map[string]interface{}{
+		"lookup_local":  false,
+		"lookup_remote": false,
+	})
+	defer func(e public.Enricher) {
+		_ = e.Close()
+	}(nolookup)
+	nolookup.Enrich(f)
+	assert.Equal(t, "local", f.Raw("source_dns"))
+	assert.Equal(t, "remote", f.Raw("destination_dns"))
+
+	lookup := getEnricher("reverse_dns")
+	assert.NoError(t, lookup.Start())
+	lookup.Configure(map[string]interface{}{
+		"lookup_remote": true,
+		"lookup_local":  true,
+		"ip_as_unknown": true,
+	})
+	defer func(e public.Enricher) {
+		_ = e.Close()
+	}(nolookup)
+	lookup.Enrich(f)
+	assert.Equal(t, "192.168.255.255", f.Raw("source_dns"))
+	assert.Equal(t, "one.one.one.one", f.Raw("destination_dns"))
 }
