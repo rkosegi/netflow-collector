@@ -1,3 +1,5 @@
 /config.yaml
 coverage.out
 .idea
+netflow-collector
+netflow-collector.exe
