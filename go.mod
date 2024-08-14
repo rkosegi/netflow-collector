@@ -25,7 +25,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.2.0
 	github.com/maxmind/mmdbwriter v1.0.0
 	github.com/oschwald/geoip2-golang v1.11.0
-	github.com/prometheus/client_golang v1.19.1
+	github.com/prometheus/client_golang v1.20.0
 	github.com/prometheus/client_model v0.6.1
 	github.com/prometheus/common v0.55.0
 	github.com/stretchr/testify v1.9.0
@@ -35,10 +35,11 @@ require (
 require (
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/libp2p/go-reuseport v0.0.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oschwald/maxminddb-golang v1.13.0 // indirect
@@ -49,6 +50,6 @@ require (
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
 	go4.org/netipx v0.0.0-20220812043211-3cc044ffd68d // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
