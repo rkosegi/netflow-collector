@@ -22,7 +22,7 @@ require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/cloudflare/goflow/v3 v3.4.5
 	github.com/go-kit/log v0.2.1
-	github.com/jellydator/ttlcache/v3 v3.2.0
+	github.com/jellydator/ttlcache/v3 v3.2.1
 	github.com/maxmind/mmdbwriter v1.0.0
 	github.com/oschwald/geoip2-golang v1.11.0
 	github.com/prometheus/client_golang v1.20.1
@@ -49,7 +49,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
 	go4.org/netipx v0.0.0-20220812043211-3cc044ffd68d // indirect
-	golang.org/x/sync v0.7.0 // indirect
+	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
