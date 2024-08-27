@@ -22,7 +22,7 @@ require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/cloudflare/goflow/v3 v3.4.5
 	github.com/go-kit/log v0.2.1
-	github.com/jellydator/ttlcache/v3 v3.2.1
+	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/maxmind/mmdbwriter v1.0.0
 	github.com/oschwald/geoip2-golang v1.11.0
 	github.com/prometheus/client_golang v1.20.2
