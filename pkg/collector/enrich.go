@@ -396,7 +396,7 @@ func (m *reverseDNS) Start() error {
 	m.cache = ttlcache.New(
 		ttlcache.WithTTL[string, string](m.ttl),
 		ttlcache.WithDisableTouchOnHit[string, string](),
-		ttlcache.WithLoader(ttlcache.LoaderFunc[string, string](
+		ttlcache.WithLoader[string, string](ttlcache.LoaderFunc[string, string](
 			func(c *ttlcache.Cache[string, string], key string) *ttlcache.Item[string, string] {
 				logger.Log("lookup", key)
 				result := "unknown"

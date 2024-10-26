@@ -17,14 +17,11 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
-      - id: check-yaml
       - id: check-merge-conflict
-  - repo: https://github.com/golangci/golangci-lint
-    rev: v1.61.0
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+  - repo: https://github.com/gruntwork-io/pre-commit
+    rev: v0.1.23
     hooks:
-      - id: golangci-lint
-  - repo: https://github.com/dnephin/pre-commit-golang
-    rev: v0.5.1
-    hooks:
-      - id: go-mod-tidy
-      - id: go-fmt
+      # - id: golangci-lint
+      - id: goimports
