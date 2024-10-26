@@ -15,9 +15,10 @@
 package collector
 
 import (
+	"testing"
+
 	"github.com/rkosegi/ipfix-collector/pkg/public"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCidrFn(t *testing.T) {
