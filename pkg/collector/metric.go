@@ -66,16 +66,17 @@ func (m *metricEntry) apply(flow *public.Flow) {
 	for _, lp := range m.labels {
 		labelValues = append(labelValues, lp.apply(flow))
 	}
-	m.metrics.Get(strings.Join(labelValues, "|"), ttlcache.WithLoader(ttlcache.LoaderFunc[string, prometheus.Counter](
-		func(c *ttlcache.Cache[string, prometheus.Counter], key string) *ttlcache.Item[string, prometheus.Counter] {
-			opts := m.opts
-			opts.ConstLabels = make(prometheus.Labels)
-			for i, lp := range m.labels {
-				opts.ConstLabels[lp.name] = labelValues[i]
-			}
-			return c.Set(key, prometheus.NewCounter(opts), ttlcache.DefaultTTL)
-		},
-	))).Value().Add(float64(flow.Raw("bytes").(uint64)))
+	m.metrics.Get(strings.Join(labelValues, "|"),
+		ttlcache.WithLoader[string, prometheus.Counter](ttlcache.LoaderFunc[string, prometheus.Counter](
+			func(c *ttlcache.Cache[string, prometheus.Counter], key string) *ttlcache.Item[string, prometheus.Counter] {
+				opts := m.opts
+				opts.ConstLabels = make(prometheus.Labels)
+				for i, lp := range m.labels {
+					opts.ConstLabels[lp.name] = labelValues[i]
+				}
+				return c.Set(key, prometheus.NewCounter(opts), ttlcache.DefaultTTL)
+			},
+		))).Value().Add(float64(flow.Raw("bytes").(uint64)))
 }
 
 func (lp *labelProcessor) init(label public.MetricLabel) {

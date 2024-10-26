@@ -14,9 +14,7 @@
 
 module github.com/rkosegi/ipfix-collector
 
-go 1.21
-
-toolchain go1.21.7
+go 1.23
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
