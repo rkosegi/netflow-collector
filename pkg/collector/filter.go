@@ -15,9 +15,10 @@
 package collector
 
 import (
-	"github.com/rkosegi/ipfix-collector/pkg/public"
 	"net"
 	"strconv"
+
+	"github.com/rkosegi/ipfix-collector/pkg/public"
 )
 
 func getFilterMatcher(rule public.FlowMatchRule) (*FlowMatcher, error) {

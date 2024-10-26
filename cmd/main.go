@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"

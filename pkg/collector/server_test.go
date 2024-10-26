@@ -16,15 +16,16 @@ package collector
 
 import (
 	"fmt"
+	"net"
+	"os"
+	"testing"
+
 	flowprotob "github.com/cloudflare/goflow/v3/pb"
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/mmdbtype"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/rkosegi/ipfix-collector/pkg/public"
 	"github.com/stretchr/testify/assert"
-	"net"
-	"os"
-	"testing"
 )
 
 func strPtr(str string) *string {

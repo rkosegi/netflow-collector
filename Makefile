@@ -77,4 +77,3 @@ lint:
 
 test:
 	go test -v ./...
-
