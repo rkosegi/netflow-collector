@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	flowprotob "github.com/cloudflare/goflow/v3/pb"
-	"github.com/cloudflare/goflow/v3/utils"
+	flowpb "github.com/netsampler/goflow2/v2/pb"
+	"github.com/netsampler/goflow2/v2/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -43,6 +43,18 @@ type col struct {
 	droppedFlowsCounter *prometheus.CounterVec
 	totalFlowsCounter   *prometheus.CounterVec
 	scrapingSum         *prometheus.SummaryVec
+	ap                  *utils.AutoFlowPipe
+	recv                *utils.UDPReceiver
+}
+
+func (c *col) Close() error {
+	if c.ap != nil {
+		c.ap.Close()
+	}
+	if c.recv != nil {
+		return c.recv.Stop()
+	}
+	return nil
 }
 
 func (c *col) Describe(descs chan<- *prometheus.Desc) {
@@ -68,14 +80,14 @@ func (c *col) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (c *col) Publish(messages []*flowprotob.FlowMessage) {
+func (c *col) Publish(messages []*flowpb.FlowMessage) {
 	for _, msg := range messages {
-		c.process(msg)
+		c.Consume(msg)
 	}
 }
 
-func (c *col) process(msg *flowprotob.FlowMessage) {
-	if msg.Type == flowprotob.FlowMessage_NETFLOW_V5 {
+func (c *col) Consume(msg *flowpb.FlowMessage) {
+	if msg.Type == flowpb.FlowMessage_NETFLOW_V5 {
 		flow := c.mapMsg(msg)
 		c.processFlow(flow)
 		c.totalFlowsCounter.WithLabelValues(flow.AsIp("sampler").String()).Inc()
@@ -86,14 +98,23 @@ func (c *col) waitUntilReady() {
 	c.ready.Wait()
 }
 
-func (c *col) Run() error {
-	err := c.start()
+func (c *col) Run() (err error) {
+	err = c.start()
 	if err != nil {
 		return err
 	}
-	s := &utils.StateNFLegacy{
-		Transport: c,
+	if c.recv, err = utils.NewUDPReceiver(&utils.UDPReceiverConfig{
+		Workers:   2,
+		Sockets:   1,
+		Blocking:  false,
+		QueueSize: 100,
+	}); err != nil {
+		return err
 	}
+	c.ap = utils.NewFlowPipe(&utils.PipeConfig{
+		Producer: &producerMetricAdapter{consumer: c},
+	})
+
 	host, port, err := net.SplitHostPort(c.cfg.NetflowEndpoint)
 	if err != nil {
 		return err
@@ -102,8 +123,18 @@ func (c *col) Run() error {
 	if err != nil {
 		return err
 	}
-	c.logger.Info("starting Netflow V5 listener", "address", fmt.Sprintf("%s:%d", host, iport))
-	return s.FlowRoutine(4, host, iport, true)
+	c.logger.Info("starting Netflow V5 listener", "host", host, "port", iport)
+
+	defer func() {
+		_ = c.Close()
+	}()
+
+	err = c.recv.Start(host, iport, c.ap.DecodeFlow)
+	if err != nil {
+		return err
+	}
+	<-make(chan struct{})
+	return nil
 }
 
 func (c *col) startEnrichers() (err error) {
@@ -214,15 +245,15 @@ func (c *col) processFlow(flow *public.Flow) {
 	}
 }
 
-func (c *col) mapMsg(msg *flowprotob.FlowMessage) *public.Flow {
+func (c *col) mapMsg(msg *flowpb.FlowMessage) *public.Flow {
 	f := &public.Flow{}
 	f.AddAttr("source_ip", msg.SrcAddr)
 	f.AddAttr("destination_ip", msg.DstAddr)
-	if msg.SrcAS != 0 {
-		f.AddAttr("source_as", msg.SrcAS)
+	if msg.SrcAs != 0 {
+		f.AddAttr("source_as", msg.SrcAs)
 	}
-	if msg.DstAS != 0 {
-		f.AddAttr("destination_as", msg.DstAS)
+	if msg.DstAs != 0 {
+		f.AddAttr("destination_as", msg.DstAs)
 	}
 	f.AddAttr("proto", msg.Proto)
 	f.AddAttr("source_port", msg.SrcPort)
