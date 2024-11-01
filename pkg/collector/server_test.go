@@ -20,9 +20,9 @@ import (
 	"os"
 	"testing"
 
-	flowprotob "github.com/cloudflare/goflow/v3/pb"
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/mmdbtype"
+	flowpb "github.com/netsampler/goflow2/v2/pb"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/rkosegi/ipfix-collector/pkg/public"
 	"github.com/stretchr/testify/assert"
@@ -178,8 +178,8 @@ func TestServer(t *testing.T) {
 		_ = c.Run()
 	}()
 	c.(*col).waitUntilReady()
-	c.(*col).Publish([]*flowprotob.FlowMessage{{
-		Type:           flowprotob.FlowMessage_NETFLOW_V5,
+	c.(*col).Publish([]*flowpb.FlowMessage{{
+		Type:           flowpb.FlowMessage_NETFLOW_V5,
 		Packets:        1,
 		SamplerAddress: []byte{127, 0, 0, 1},
 		SrcAddr:        []byte{8, 8, 8, 8},
@@ -187,7 +187,7 @@ func TestServer(t *testing.T) {
 		SrcPort:        53,
 		DstPort:        31034,
 		Proto:          0x11,
-		SrcAS:          20,
+		SrcAs:          20,
 	}})
 	m := &dto.Metric{}
 	assert.NoError(t, c.(*col).totalFlowsCounter.WithLabelValues("127.0.0.1").Write(m))
