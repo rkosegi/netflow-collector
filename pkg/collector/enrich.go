@@ -19,13 +19,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-kit/log"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/oschwald/geoip2-golang"
 	"github.com/rkosegi/ipfix-collector/pkg/public"
@@ -65,7 +65,7 @@ func getEnricher(name string) public.Enricher {
 }
 
 type maxmindCountry struct {
-	logger log.Logger
+	logger *slog.Logger
 	isOpen bool
 	dir    string
 	db     *geoip2.Reader
@@ -77,8 +77,8 @@ func (m *maxmindCountry) Configure(cfg map[string]interface{}) {
 	} else {
 		m.dir = dir.(string)
 	}
-	m.logger = log.With(baseLogger, "component", "geoip_country")
-	m.logger.Log("msg", fmt.Sprintf("using directory %s for Country GeoIP", m.dir))
+	m.logger = baseLogger.With("component", "geoip_country")
+	m.logger.Info(fmt.Sprintf("using directory %s for Country GeoIP", m.dir))
 }
 
 func (m *maxmindCountry) Close() error {
@@ -209,7 +209,7 @@ func (p *protocolName) Enrich(flow *public.Flow) {
 }
 
 type maxmindAsn struct {
-	logger log.Logger
+	logger *slog.Logger
 	isOpen bool
 	dir    string
 	db     *geoip2.Reader
@@ -221,8 +221,8 @@ func (m *maxmindAsn) Configure(cfg map[string]interface{}) {
 	} else {
 		m.dir = dir.(string)
 	}
-	m.logger = log.With(baseLogger, "component", "geoip_asn")
-	m.logger.Log("msg", fmt.Sprintf("using directory %s for ASN GeoIP", m.dir))
+	m.logger = baseLogger.With("component", "geoip_asn")
+	m.logger.Info(fmt.Sprintf("using directory %s for ASN GeoIP", m.dir))
 }
 
 func (m *maxmindAsn) Close() error {
@@ -269,6 +269,7 @@ type reverseDNS struct {
 	lookupLocal  bool
 	lookupRemote bool
 	ipAsUnknown  bool
+	logger       *slog.Logger
 }
 
 func (m *reverseDNS) Configure(cfg map[string]interface{}) {
@@ -323,7 +324,7 @@ func (m *reverseDNS) Configure(cfg map[string]interface{}) {
 	}
 }
 
-func (m *reverseDNS) populateCacheWithPiHoleEntries(logger log.Logger, msgs io.Reader) {
+func (m *reverseDNS) populateCacheWithPiHoleEntries(msgs io.Reader) {
 	// cache to hold the results
 	m.piHoleResults = ttlcache.New(
 		ttlcache.WithTTL[string, string](m.ttl), // IP to name
@@ -353,7 +354,7 @@ func (m *reverseDNS) populateCacheWithPiHoleEntries(logger log.Logger, msgs io.R
 				origQuery := dnsMasqCache.Get(sessionId)
 				if origQuery != nil {
 					m.piHoleResults.Set(resultIP, origQuery.Value(), ttlcache.DefaultTTL)
-					logger.Log("tph-query", origQuery.Value(), "tph-result", resultIP)
+					m.logger.Info("got entry", "tph-query", origQuery.Value(), "tph-result", resultIP)
 				}
 			}
 		}
@@ -391,14 +392,14 @@ func (m *reverseDNS) Enrich(flow *public.Flow) {
 }
 
 func (m *reverseDNS) Start() error {
-	logger := log.With(baseLogger, "component", "reverse_dns")
+	m.logger = baseLogger.With("component", "reverse_dns")
 	ctx := context.Background()
 	m.cache = ttlcache.New(
 		ttlcache.WithTTL[string, string](m.ttl),
 		ttlcache.WithDisableTouchOnHit[string, string](),
 		ttlcache.WithLoader[string, string](ttlcache.LoaderFunc[string, string](
 			func(c *ttlcache.Cache[string, string], key string) *ttlcache.Item[string, string] {
-				logger.Log("lookup", key)
+				m.logger.Debug("cache lookup", "key", key)
 				result := "unknown"
 				if m.ipAsUnknown {
 					result = key
@@ -407,7 +408,7 @@ func (m *reverseDNS) Start() error {
 				if err == nil && len(names) != 0 {
 					result = strings.TrimRight(names[0], ".")
 				}
-				logger.Log("result", result)
+				m.logger.Debug("lookup result", "result", result)
 				return c.Set(key, result, ttlcache.DefaultTTL)
 			},
 		)),
@@ -415,7 +416,7 @@ func (m *reverseDNS) Start() error {
 	go m.cache.Start()
 
 	if m.tailPiHole {
-		logger.Log("tailing", "pihole")
+		m.logger.Info("tailing pihole")
 		tph := exec.CommandContext(ctx, "pihole", "-t")
 		stdout, err := tph.StdoutPipe()
 		if err != nil {
@@ -425,7 +426,7 @@ func (m *reverseDNS) Start() error {
 		if err != nil {
 			return err
 		}
-		go m.populateCacheWithPiHoleEntries(logger, stdout)
+		go m.populateCacheWithPiHoleEntries(stdout)
 	}
 
 	return nil

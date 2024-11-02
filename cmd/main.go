@@ -18,10 +18,8 @@ import (
 	"fmt"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
-	"github.com/prometheus/common/promlog"
-	"github.com/prometheus/common/promlog/flag"
+	"github.com/prometheus/common/promslog"
+	"github.com/prometheus/common/promslog/flag"
 	"github.com/prometheus/common/version"
 	"github.com/rkosegi/ipfix-collector/pkg/collector"
 )
@@ -29,22 +27,20 @@ import (
 const progName = "netflow_collector"
 
 var (
-	logger     = log.NewNopLogger()
 	configFile = kingpin.Flag("config", "Path to the configuration file.").Default("config.yaml").String()
 )
 
 func main() {
-	kingpin.Version(version.Print(progName))
-	promlogConfig := &promlog.Config{}
+	promlogConfig := &promslog.Config{
+		Style: promslog.GoKitStyle,
+	}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
+	kingpin.Version(version.Print(progName))
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
-	logger = promlog.New(promlogConfig)
-	collector.SetBaseLogger(logger)
 
-	level.Info(logger).Log("msg", fmt.Sprintf("Starting %s", progName),
-		"version", version.BuildContext(),
-		"config", *configFile)
+	logger := promslog.New(promlogConfig)
+	logger.Info(fmt.Sprintf("Starting %s", progName), "version", version.Info(), "config", *configFile)
 
 	if cfg, err := collector.LoadConfig(*configFile); err != nil {
 		panic(err)

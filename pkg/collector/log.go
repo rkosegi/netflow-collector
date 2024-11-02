@@ -14,12 +14,14 @@
 
 package collector
 
-import "github.com/go-kit/log"
-
-var (
-	baseLogger = log.NewNopLogger()
+import (
+	"log/slog"
 )
 
-func SetBaseLogger(logger log.Logger) {
-	baseLogger = log.With(logger)
+var (
+	baseLogger = slog.Default()
+)
+
+func SetBaseLogger(logger *slog.Logger) {
+	baseLogger = logger
 }

@@ -15,11 +15,12 @@
 package collector
 
 import (
+	"errors"
 	"fmt"
+	"log/slog"
 
 	flowprotob "github.com/cloudflare/goflow/v3/pb"
 	"github.com/cloudflare/goflow/v3/utils"
-	"github.com/go-kit/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -33,7 +34,7 @@ import (
 )
 
 type col struct {
-	logger              log.Logger
+	logger              *slog.Logger
 	ready               sync.WaitGroup
 	cfg                 *public.Config
 	filters             []FlowMatcher
@@ -101,15 +102,15 @@ func (c *col) Run() error {
 	if err != nil {
 		return err
 	}
-	c.logger.Log("msg", "starting Netflow V5 listener", "address", fmt.Sprintf("%s:%d", host, iport))
+	c.logger.Info("starting Netflow V5 listener", "address", fmt.Sprintf("%s:%d", host, iport))
 	return s.FlowRoutine(4, host, iport, true)
 }
 
 func (c *col) startEnrichers() (err error) {
 	if c.cfg.Pipeline.Enrich != nil {
-		c.logger.Log("enrichers", len(*c.cfg.Pipeline.Enrich))
+		c.logger.Debug("starting enrichers", "enrichers", len(*c.cfg.Pipeline.Enrich))
 		for _, name := range *c.cfg.Pipeline.Enrich {
-			c.logger.Log("msg", "starting enricher", "name", name)
+			c.logger.Info("starting enricher", "name", name)
 			e := getEnricher(name)
 			if e == nil {
 				return fmt.Errorf("unknown enricher : %s", name)
@@ -130,7 +131,7 @@ func (c *col) startEnrichers() (err error) {
 
 func (c *col) startFilters() error {
 	if c.cfg.Pipeline.Filter != nil {
-		c.logger.Log("filter rules", len(*c.cfg.Pipeline.Filter))
+		c.logger.Info("starting filters", "rules", len(*c.cfg.Pipeline.Filter))
 		for _, rule := range *c.cfg.Pipeline.Filter {
 			m, err := getFilterMatcher(rule)
 			if err != nil {
@@ -172,7 +173,7 @@ func (c *col) start() (err error) {
 	if c.cfg.FlushInterval == 0 {
 		c.cfg.FlushInterval = 180
 	}
-	c.logger.Log("metrics", len(c.cfg.Pipeline.Metrics.Items))
+	c.logger.Info("creating metric items", "count", len(c.cfg.Pipeline.Metrics.Items))
 	for _, metric := range c.cfg.Pipeline.Metrics.Items {
 		me := &metricEntry{}
 		me.init(c.cfg.Pipeline.Metrics.Prefix, &metric, c.cfg.FlushInterval)
@@ -183,9 +184,15 @@ func (c *col) start() (err error) {
 		prometheus.MustRegister(c)
 		prometheus.MustRegister(collectors.NewBuildInfoCollector())
 		http.Handle("/metrics", promhttp.Handler())
-		c.logger.Log("msg", "starting metrics server", "address", *c.cfg.TelemetryEndpoint)
+		c.logger.Info("starting metrics server", "address", *c.cfg.TelemetryEndpoint)
 		go func() {
-			panic(http.ListenAndServe(*c.cfg.TelemetryEndpoint, nil))
+			if err = http.ListenAndServe(*c.cfg.TelemetryEndpoint, nil); err != nil {
+				if !errors.Is(err, http.ErrServerClosed) {
+					panic(err)
+				} else {
+					c.logger.Info("metrics server closed")
+				}
+			}
 		}()
 	}
 
@@ -229,9 +236,9 @@ func (c *col) mapMsg(msg *flowprotob.FlowMessage) *public.Flow {
 	return f
 }
 
-func New(cfg *public.Config, logger log.Logger) public.Collector {
+func New(cfg *public.Config, logger *slog.Logger) public.Collector {
 	c := &col{
-		logger:    log.With(logger, "caller", log.DefaultCaller),
+		logger:    logger,
 		cfg:       cfg,
 		filters:   []FlowMatcher{},
 		enrichers: []public.Enricher{},
