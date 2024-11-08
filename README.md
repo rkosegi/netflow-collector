@@ -8,7 +8,7 @@ Have you ever wondered where is your internet traffic going?
 
 ## How it works
 
-Simply put, it uses netflow protocol, specifically it uses V5 version for simplicity.
+Simply put, it uses netflow protocol, specifically it uses V5 version (IPv4 only) for simplicity.
 In order for your setup to work, you will either need [nfdump](https://github.com/phaag/nfdump)
 or dedicated hardware such as [Mikrotik RB941](https://mikrotik.com/product/RB941-2nD)
 Flows are then fed into collector that aggregates them as metrics.
