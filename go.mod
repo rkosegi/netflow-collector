@@ -22,7 +22,7 @@ require (
 	github.com/maxmind/mmdbwriter v1.0.0
 	github.com/netsampler/goflow2/v2 v2.2.1
 	github.com/oschwald/geoip2-golang v1.11.0
-	github.com/prometheus/client_golang v1.21.0
+	github.com/prometheus/client_golang v1.21.1
 	github.com/prometheus/client_model v0.6.1
 	github.com/prometheus/common v0.62.0
 	github.com/stretchr/testify v1.10.0
