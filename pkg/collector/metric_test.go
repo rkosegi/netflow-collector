@@ -79,7 +79,7 @@ func TestMetricExpiration(t *testing.T) {
 	assert.Equal(t, float64(1), getMetric(t, m, "10.11.12.13"))
 	time.Sleep(time.Millisecond * 500)
 
-	// t = 0.5 - first thing should still be validate as we have 1 sec TTL, now add second thing
+	// t = 0.5 - first thing should still be validated as we have 1 sec TTL, now add second thing
 	m.apply(f)
 	assert.Equal(t, 1, countMetrics(m))
 	assert.Equal(t, true, metricExists(m, "10.11.12.13"))
@@ -95,7 +95,7 @@ func TestMetricExpiration(t *testing.T) {
 	assert.Equal(t, 0, countMetrics(m))
 	assert.Equal(t, false, metricExists(m, "10.11.12.13"))
 
-	// t = 1.6 - add it again, verifiy counter has reset
+	// t = 1.6 - add it again, verify counter has reset
 	m.apply(f)
 	assert.Equal(t, 1, countMetrics(m))
 	assert.Equal(t, true, metricExists(m, "10.11.12.13"))
