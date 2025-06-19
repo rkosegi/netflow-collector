@@ -41,7 +41,7 @@ func main() {
 
 	logger := promslog.New(promlogConfig)
 	logger.Info(fmt.Sprintf("Starting %s", progName), "version", version.Info(), "config", *configFile)
-
+	collector.SetBaseLogger(logger)
 	if cfg, err := collector.LoadConfig(*configFile); err != nil {
 		panic(err)
 	} else {
