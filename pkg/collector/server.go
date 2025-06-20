@@ -215,6 +215,11 @@ func (c *col) start() (err error) {
 		prometheus.MustRegister(c)
 		prometheus.MustRegister(collectors.NewBuildInfoCollector())
 		http.Handle("/metrics", promhttp.Handler())
+		http.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("OK"))
+		})
+
 		c.logger.Info("starting metrics server", "address", *c.cfg.TelemetryEndpoint)
 		go func() {
 			if err = http.ListenAndServe(*c.cfg.TelemetryEndpoint, nil); err != nil {
