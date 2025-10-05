@@ -73,6 +73,45 @@ Full example can be found [here](docs/config.yaml)
 - `interface_mapper`
 - `protocol_name`
 
+- `host_alias`
+
+   Allows to alias IP address to some human-memorable name. This is kind of similar to `reverse_dns`,
+   but it uses static map of aliases instead of actual DNS service.
+     - used attributes: `source_ip`, `destination_ip`
+     - added attributes: `source_host_alias`, `destination_host_alias`
+     - configuration options:
+
+        - `alias_map` - mapping of IPv4 address to host alias
+
+        Example config
+
+          ```yaml
+          pipline:
+            enrich:
+              - host_alias
+            metrics:
+              items:
+                - name: source_host_alias
+                  description: Human-memorable alias of source host
+                  labels:
+                    - name: source_host_alias
+                      value: source_host_alias
+                      converter: str
+                      on_missing: empty_str
+                    - name: destination_host_alias
+                      value: destination_host_alias
+                      converter: str
+                      on_missing: empty_str
+          .....
+          extensions:
+            .....
+            host_alias:
+              alias_map:
+                192.168.0.1: My gateway
+                192.168.0.10: TVBox
+                192.168.0.20: SmartPlug1
+          ```
+
 - `reverse_dns`
 
   Does a reverse DNS lookup for IP and selects the first entry returned. `unknown` set if none found and ip_as_unknown is not enabled. Results (including missing) cached per `cache_duration`.
