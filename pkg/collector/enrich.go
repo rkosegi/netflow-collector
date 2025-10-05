@@ -44,6 +44,7 @@ var (
 		"interface_mapper": &interfaceName{},
 		"protocol_name":    &protocolName{},
 		"reverse_dns":      &reverseDNS{lookupRemote: true},
+		"host_alias":       &enrichHostAlias{},
 	}
 	localCidrs []*net.IPNet
 )
