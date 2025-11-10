@@ -27,6 +27,6 @@ repos:
       - id: go-fmt
       - id: go-imports
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.28.0
+    rev: v8.29.0
     hooks:
       - id: gitleaks
