@@ -20,7 +20,7 @@ require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/maxmind/mmdbwriter v1.1.0
-	github.com/netsampler/goflow2/v2 v2.2.3
+	github.com/netsampler/goflow2/v2 v2.2.6
 	github.com/oschwald/geoip2-golang v1.13.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
@@ -45,5 +45,5 @@ require (
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
