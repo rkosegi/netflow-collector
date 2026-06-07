@@ -68,13 +68,13 @@ func getIsFilterFn(rule *public.FlowMatchRule) (FilterFn, error) {
 }
 
 func getIsUint32FilterFn(rule *public.FlowMatchRule) (FilterFn, error) {
-	i, err := strconv.Atoi(*rule.IsUint32)
+	parsed, err := strconv.ParseUint(*rule.IsUint32, 10, 32)
 	if err != nil {
 		return nil, err
 	}
 	return func(flow *public.Flow) bool {
 		v := flow.AsUint32(rule.Match)
-		return v != nil && *v == uint32(i)
+		return v != nil && *v == uint32(parsed)
 	}, nil
 }
 
