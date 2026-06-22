@@ -18,7 +18,7 @@ go 1.25.0
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
-	github.com/jellydator/ttlcache/v3 v3.4.0
+	github.com/jellydator/ttlcache/v3 v3.4.1
 	github.com/maxmind/mmdbwriter v1.2.0
 	github.com/netsampler/goflow2/v2 v2.2.6
 	github.com/oschwald/geoip2-golang v1.13.0
@@ -42,7 +42,7 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
-	golang.org/x/sync v0.15.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
