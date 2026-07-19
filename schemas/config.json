@@ -1,0 +1,175 @@
+{
+  "$defs": {
+    "configSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "netflow_endpoint": {
+          "type": "string",
+          "description": "UDP endpoint that collector will listen on for incoming flow reports"
+        },
+        "telemetry_endpoint": {
+          "type": "string",
+          "description": "HTTP endpoint at which metrics are exposed"
+        },
+        "flush_interval": {
+          "description": "Interval at which are flow metric kept active, in seconds. This is to prevent memory problems. Actual value depends on number of active flows in observation domain",
+          "type": "integer"
+        },
+        "pipeline": {
+          "description": "Flow processing pipeline",
+          "$ref": "#/$defs/pipelineSpec"
+        },
+        "extensions": {
+          "description": "Enabled extensions",
+          "additionalProperties": {
+            "$ref": "#/$defs/extConfigSpec"
+          }
+        }
+      },
+      "required": [
+        "netflow_endpoint"
+      ]
+    },
+    "extConfigSpec": {
+      "description": "Configuration of extension",
+      "additionalProperties": true
+    },
+    "pipelineSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "metrics": {
+          "$ref": "#/$defs/metricsConfigSpec"
+        },
+        "enrich": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "filter": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/flowMatchRuleSpec"
+          }
+        }
+      },
+      "required": [
+        "metrics"
+      ]
+    },
+    "metricsConfigSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "prefix": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/metricSpec"
+          }
+        }
+      }
+    },
+    "metricSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human readable metric description"
+        },
+        "name": {
+          "description": "Metric name",
+          "type": "string"
+        },
+        "labels": {
+          "description": "List of dynamic labels derived from flow data",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/metricLabelSpec"
+          }
+        }
+      }
+    },
+    "metricLabelSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Label name",
+          "type": "string"
+        },
+        "value": {
+          "description": "Flow property that is source of data for this label value or static string when converter is set to \"static\"",
+          "type": "string"
+        },
+        "on_missing": {
+          "description": "Action to perform when data are missing. NOT IMPLEMENTED",
+          "type": "string",
+          "enum": [
+            "empty_str"
+          ]
+        },
+        "converter": {
+          "type": "string",
+          "enum": [
+            "ipv4",
+            "str",
+            "uint32",
+            "uint64",
+            "static"
+          ]
+        }
+      },
+      "required": [
+        "converter",
+        "name",
+        "value"
+      ]
+    },
+    "flowMatchRuleSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "match": {
+          "description": "Name of flow property to match against, ie source_ip",
+          "type": "string"
+        },
+        "cidr": {
+          "description": "Predicate to match CIDR value",
+          "type": "string"
+        },
+        "is": {
+          "description": "Simple string marching predicate, ie for IP address",
+          "type": "string"
+        },
+        "isUint32": {
+          "description": "Matching predicate for unsigned 32-bit integer, ie. for port number",
+          "type": "string"
+        },
+        "local-to-local": {
+          "description": "Whether the flow represents traffic send from local source to the local destination",
+          "type": "boolean"
+        }
+      },
+      "if": {
+        "properties": {
+          "local-to-local": {
+            "const": true
+          }
+        },
+        "required": [
+          "local-to-local"
+        ]
+      },
+      "else": {
+        "required": [
+          "match"
+        ]
+      }
+    }
+  },
+  "$id": "https://github.com/rkosegi/netflow-collector/schemas/config",
+  "$ref": "#/$defs/configSpec",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Configuration object specification",
+  "type": "object"
+}

@@ -119,7 +119,7 @@ func (lp *labelProcessor) init(label public.MetricLabel) {
 func (lp *labelProcessor) apply(flow *public.Flow) string {
 	if attr := flow.Raw(lp.attr); attr != nil {
 		return lp.converterFn(attr)
-	} else {
-		return lp.onMissingFn(flow)
 	}
+
+	return lp.onMissingFn(flow)
 }
