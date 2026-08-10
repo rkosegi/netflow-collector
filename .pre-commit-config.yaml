@@ -31,7 +31,7 @@ repos:
     hooks:
       - id: gitleaks
   - repo: https://github.com/santhosh-tekuri/jsonschema
-    rev: v6.0.2
+    rev: cmd/jv/0.8.0
     hooks:
       - id: jsonschema-validate
         name: Validate example config against schema
