@@ -20,7 +20,7 @@ require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/jellydator/ttlcache/v3 v3.4.1
 	github.com/maxmind/mmdbwriter v1.2.0
-	github.com/netsampler/goflow2/v2 v2.2.6
+	github.com/netsampler/goflow2/v2 v2.2.7
 	github.com/oschwald/geoip2-golang v1.13.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/client_model v0.6.3
