@@ -19,6 +19,12 @@ on:
       - v*
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   image:
+    permissions:
+      contents: read
+      packages: write
     uses: rkosegi/github-workflows/.github/workflows/publish-image.yaml@44a475d58970960b84eee2019935a368a6006840 # v0.0.11
